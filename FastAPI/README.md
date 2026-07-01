@@ -3,13 +3,13 @@
 
 1. Dentro do diretório:
    
-~/Documentos/Fbd/FastAPI$ 
+~/Fbd/FastAPI$ 
 
-# Baixar dependencias
+## Baixar dependencias
 
 pip install -r requirements.txt
 
-# Ativar ambiente virtual 
+## Ativar ambiente virtual 
 
 rode:
 source venv/bin/activate
@@ -17,5 +17,5 @@ source venv/bin/activate
 e depois:
 python3 -m uvicorn main:app --reload 
 
-# Desativar o ambiente virtual
+## Desativar o ambiente virtual
 desactive 
