@@ -1,135 +1,47 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+import models, schemas, crud
+from database import engine, get_db
 
-from database import Base, engine, SessionLocal
-import models
+# Isso garante que o SQLAlchemy se conecte e valide as tabelas
+models.Base.metadata.create_all(bind=engine)
 
-# Cria todas as tabelas do banco
-Base.metadata.create_all(bind=engine)
+app = FastAPI(title="API UniCarona - CRUD de Caronas")
 
-app = FastAPI(
-    title="API UniCarona",
-    description="Sistema de gerenciamento de caronas",
-    version="1.0.0"
-)
+# Rota para INSERIR (POST)
+@app.post("/caronas/", response_model=schemas.CaronaResponse)
+def criar_carona(carona: schemas.CaronaCreate, db: Session = Depends(get_db)):
+    # Verifica se a carona já existe
+    db_carona = crud.get_carona(db, carona_id=carona.id_carona)
+    if db_carona:
+        raise HTTPException(status_code=400, detail="ID de carona já cadastrado!")
+    return crud.create_carona(db=db, carona=carona)
 
+# Rota para LISTAR TODAS (GET)
+@app.get("/caronas/", response_model=list[schemas.CaronaResponse])
+def listar_caronas(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_caronas(db, skip=skip, limit=limit)
 
-@app.get("/")
-def home():
-    return {
-        "mensagem": "Bem-vindo à API UniCarona!"
-    }
+# Rota para BUSCAR UMA SÓ (GET)
+@app.get("/caronas/{carona_id}", response_model=schemas.CaronaResponse)
+def buscar_carona(carona_id: int, db: Session = Depends(get_db)):
+    db_carona = crud.get_carona(db, carona_id=carona_id)
+    if db_carona is None:
+        raise HTTPException(status_code=404, detail="Carona não encontrada")
+    return db_carona
 
+# Rota para ATUALIZAR (PUT)
+@app.put("/caronas/{carona_id}", response_model=schemas.CaronaResponse)
+def atualizar_carona(carona_id: int, vagas: schemas.CaronaUpdate, db: Session = Depends(get_db)):
+    db_carona = crud.update_vagas(db, carona_id=carona_id, novas_vagas=vagas.vagas_disponiveis)
+    if db_carona is None:
+        raise HTTPException(status_code=404, detail="Carona não encontrada")
+    return db_carona
 
-@app.get("/teste-banco")
-def teste_banco():
-    db: Session = SessionLocal()
-
-    try:
-        db.execute("SELECT 1")
-        return {
-            "status": "Conectado ao PostgreSQL!"
-        }
-
-    finally:
-        db.close()
-
-
-@app.get("/usuarios")
-def listar_usuarios():
-    db = SessionLocal()
-
-    try:
-        usuarios = db.query(models.Usuario).all()
-        return usuarios
-
-    finally:
-        db.close()
-
-
-@app.get("/motoristas")
-def listar_motoristas():
-    db = SessionLocal()
-
-    try:
-        return db.query(models.Motorista).all()
-
-    finally:
-        db.close()
-
-
-@app.get("/veiculos")
-def listar_veiculos():
-    db = SessionLocal()
-
-    try:
-        return db.query(models.Veiculo).all()
-
-    finally:
-        db.close()
-
-
-@app.get("/locais")
-def listar_locais():
-    db = SessionLocal()
-
-    try:
-        return db.query(models.Local).all()
-
-    finally:
-        db.close()
-
-
-
-@app.get("/caronas")
-def listar_caronas():
-    db = SessionLocal()
-
-    try:
-        return db.query(models.Carona).all()
-
-    finally:
-        db.close()
-
-
-@app.get("/reservas")
-def listar_reservas():
-    db = SessionLocal()
-
-    try:
-        return db.query(models.Reserva).all()
-
-    finally:
-        db.close()
-
-
-@app.get("/mensagens")
-def listar_mensagens():
-    db = SessionLocal()
-
-    try:
-        return db.query(models.Mensagem).all()
-
-    finally:
-        db.close()
-
-@app.get("/avaliacoes")
-def listar_avaliacoes():
-    db = SessionLocal()
-
-    try:
-        return db.query(models.Avaliacao).all()
-
-    finally:
-        db.close()
-
-
-@app.get("/pagamentos")
-def listar_pagamentos():
-    db = SessionLocal()
-
-    try:
-        return db.query(models.Pagamento).all()
-
-    finally:
-        db.close()
+# Rota para DELETAR (DELETE)
+@app.delete("/caronas/{carona_id}")
+def deletar_carona(carona_id: int, db: Session = Depends(get_db)):
+    db_carona = crud.delete_carona(db, carona_id=carona_id)
+    if db_carona is None:
+        raise HTTPException(status_code=404, detail="Carona não encontrada")
+    return {"mensagem": "Carona cancelada/deletada com sucesso"}
